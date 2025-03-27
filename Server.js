@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
+
 const cors = require('cors');
 
 const app = express();
@@ -341,7 +342,6 @@ app.put('/historial/:id', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
 
 // Iniciar servidor
 app.listen(port, () => console.log(`Servidor corriendo en http://localhost:${port}`));
