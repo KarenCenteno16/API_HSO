@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+
 const cors = require('cors');
 
 const app = express();
@@ -16,11 +17,6 @@ mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Conectado a MongoDB Atlas'))
   .catch(err => console.error('Error de conexión', err));
 
-// Función para hashear contraseñas
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
 // Esquema y modelo de Usuario
 const UsuarioSchema = new mongoose.Schema({
   nombre: String,
@@ -33,11 +29,11 @@ const UsuarioSchema = new mongoose.Schema({
 });
 const Usuario = mongoose.model('Usuario', UsuarioSchema);
 
-// Registrar usuario con la contraseña hasheada
+// Registrar usuario con contraseña hasheada
 app.post('/usuarios', async (req, res) => {
   try {
     const { nombre, apellido_p, apellido_m, nombre_usuario, contrasena, telefonos, cargo } = req.body;
-    const hashedPassword = hashPassword(contrasena);
+    const hashedPassword = await bcrypt.hash(contrasena, 10);
 
     const nuevoUsuario = new Usuario({ nombre, apellido_p, apellido_m, nombre_usuario, contrasena: hashedPassword, telefonos, cargo });
     const resultado = await nuevoUsuario.save();
@@ -92,8 +88,8 @@ app.post('/login', async (req, res) => {
     const usuario = await Usuario.findOne({ nombre_usuario });
 
     if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const hashedInput = hashPassword(contrasena);
-    if (hashedInput !== usuario.contrasena) return res.status(401).json({ error: 'Contraseña incorrecta' });
+    const esValida = await bcrypt.compare(contrasena, usuario.contrasena);
+    if (!esValida) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
     res.json({ mensaje: 'Inicio de sesión exitoso' });
   } catch (error) {
