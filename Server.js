@@ -33,7 +33,7 @@ const UsuarioSchema = new mongoose.Schema({
 });
 const Usuario = mongoose.model('Usuario', UsuarioSchema);
 
-// Registrar usuario con contraseña hasheada
+// Registrar usuario con la contraseña hasheada
 app.post('/usuarios', async (req, res) => {
   try {
     const { nombre, apellido_p, apellido_m, nombre_usuario, contrasena, telefonos, cargo } = req.body;
