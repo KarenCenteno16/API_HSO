@@ -25,17 +25,16 @@ const UsuarioSchema = new mongoose.Schema({
   nombre_usuario: String,
   contrasena: String,
   telefonos: [String],
-  cargo: String
 });
 const Usuario = mongoose.model('Usuario', UsuarioSchema);
 
 // Registrar usuario con contraseña hasheada
 app.post('/usuarios', async (req, res) => {
   try {
-    const { nombre, apellido_p, apellido_m, nombre_usuario, contrasena, telefonos, cargo } = req.body;
+    const { nombre, apellido_p, apellido_m, nombre_usuario, contrasena, telefonos } = req.body;
     const hashedPassword = await bcrypt.hash(contrasena, 10);
 
-    const nuevoUsuario = new Usuario({ nombre, apellido_p, apellido_m, nombre_usuario, contrasena: hashedPassword, telefonos, cargo });
+    const nuevoUsuario = new Usuario({ nombre, apellido_p, apellido_m, nombre_usuario, contrasena: hashedPassword, telefonos });
     const resultado = await nuevoUsuario.save();
 
     console.log("Usuario registrado con éxito:", resultado);
@@ -61,8 +60,8 @@ app.get('/usuarios/:id', async (req, res) => {
 // Actualizar usuario por ID
 app.put('/usuarios/:id', async (req, res) => {
   try {
-    const { nombre, apellido_p, apellido_m, nombre_usuario, telefonos, cargo } = req.body;
-    await Usuario.findByIdAndUpdate(req.params.id, { nombre, apellido_p, apellido_m, nombre_usuario, telefonos, cargo });
+    const { nombre, apellido_p, apellido_m, nombre_usuario, telefonos } = req.body;
+    await Usuario.findByIdAndUpdate(req.params.id, { nombre, apellido_p, apellido_m, nombre_usuario, telefonos });
     res.json({ mensaje: 'Usuario actualizado' });
   } catch (error) {
     console.error('Error al actualizar usuario:', error);
@@ -185,15 +184,17 @@ app.delete('/valvulas/:id', async (req, res) => {
     }
 });
 
-// Esquema y modelo de Horario
 const HorarioSchema = new mongoose.Schema({
-    usuario_id: { type: Number, required: true },
-    hora_encendido: { type: String, required: true },
-    hora_apagado: { type: String, required: true },
-    fecha_inicio: { type: Date, required: true },
-    fecha_cierre: { type: Date, required: true }
+  usuario_id: { type: Number, required: true },
+  hora_encendido: { type: String, required: true },
+  hora_apagado: { type: String, required: true },
+  dias: { 
+      type: [String], 
+      required: true, 
+      enum: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+  }
 }, { timestamps: true });
-  
+
 const Horario = mongoose.model('Horario', HorarioSchema, 'horario');
   
 // Ruta para insertar un nuevo horario
