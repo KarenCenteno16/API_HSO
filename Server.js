@@ -91,7 +91,7 @@ app.post('/login', async (req, res) => {
     const esValida = await bcrypt.compare(contrasena, usuario.contrasena);
     if (!esValida) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
-    res.json({ mensaje: 'Inicio de sesión exitoso' });
+    res.json({ mensaje: 'Inicio de sesión exitoso', usuario});
   } catch (error) {
     console.error('Error en la autenticación:', error);
     res.status(500).json({ error: 'Error en la autenticación' });
