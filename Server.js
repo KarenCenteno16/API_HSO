@@ -45,6 +45,43 @@ app.post('/usuarios', async (req, res) => {
   }
 });
 
+app.post("/iniciarsesion", async (req, res) => {
+  const { nombre_usuario, contrasena } = req.body;
+  if (!nombre_usuario || !contrasena) {
+    return res
+      .status(400)
+      .json({ mensaje: "Usuario y contraseña son requeridos" });
+  }
+  try {
+    const usuario = await Usuario.findOne({ nombre_usuario });
+    if (!usuario) {
+      return res.status(404).json({ mensaje: "Usuario no encontrado" });
+    }
+    const contrasenaValida = await bcrypt.compare(
+      contrasena,
+      usuario.contrasena
+    );
+    if (!contrasenaValida) {
+      return res.status(401).json({ mensaje: "Contraseña incorrecta" });
+    }
+    const usuarioSinContrasena = {
+      _id: usuario._id,
+      nombre: usuario.nombre,
+      apellido_p: usuario.apellido_p,
+      apellido_m: usuario.apellido_m,
+      nombre_usuario: usuario.nombre_usuario,
+      telefonos: usuario.telefonos,
+    };
+    res.status(200).json({
+      mensaje: "Inicio de sesión exitoso",
+      usuario: usuarioSinContrasena,
+    });
+  } catch (error) {
+    console.error("Error en el login:", error);
+    res.status(500).json({ mensaje: "Error interno del servidor" });
+  }
+});
+
 // Obtener usuario por ID
 app.get('/usuarios/:id', async (req, res) => {
   try {
