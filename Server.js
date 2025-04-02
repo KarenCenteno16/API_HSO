@@ -18,7 +18,7 @@ mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .catch(err => console.error('Error de conexión', err));
 
 // Esquema y modelo de Usuario
-// Esquema del Usuario
+
 const UsuarioSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
   apellidos: { type: String, required: true },
