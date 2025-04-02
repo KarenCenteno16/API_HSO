@@ -18,63 +18,71 @@ mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .catch(err => console.error('Error de conexión', err));
 
 // Esquema y modelo de Usuario
+// Esquema del Usuario
 const UsuarioSchema = new mongoose.Schema({
-  nombre: String,
-  apellido_p: String,
-  apellido_m: String,
-  nombre_usuario: String,
-  contrasena: String,
-  telefonos: [String],
+  nombre: { type: String, required: true },
+  apellidos: { type: String, required: true },
+  nombre_usuario: { type: String, required: true, unique: true },
+  contrasena: { type: String, required: true },
+  telefonos: { type: [String], default: [] },
+  correo: { type: String, required: true, unique: true }
 });
-const Usuario = mongoose.model('Usuario', UsuarioSchema);
+
+const Usuario = mongoose.model("Usuario", UsuarioSchema);
 
 // Registrar usuario con contraseña hasheada
-app.post('/usuarios', async (req, res) => {
+app.post("/usuarios", async (req, res) => {
   try {
-    const { nombre, apellido_p, apellido_m, nombre_usuario, contrasena, telefonos } = req.body;
+    const { nombre, apellidos, nombre_usuario, contrasena, telefonos, correo } = req.body;
     const hashedPassword = await bcrypt.hash(contrasena, 10);
 
-    const nuevoUsuario = new Usuario({ nombre, apellido_p, apellido_m, nombre_usuario, contrasena: hashedPassword, telefonos });
-    const resultado = await nuevoUsuario.save();
+    const nuevoUsuario = new Usuario({
+      nombre,
+      apellidos,
+      nombre_usuario,
+      contrasena: hashedPassword,
+      telefonos,
+      correo
+    });
 
-    console.log("Usuario registrado con éxito:", resultado);
-    res.status(201).json({ mensaje: 'Usuario registrado con éxito' });
+    await nuevoUsuario.save();
+    res.status(201).json({ mensaje: "Usuario registrado con éxito" });
   } catch (error) {
-    console.error('Error al registrar usuario:', error);
-    res.status(500).json({ error: 'Error al registrar usuario' });
+    console.error("Error al registrar usuario:", error);
+    res.status(500).json({ error: "Error al registrar usuario" });
   }
 });
 
+// Inicio de sesión
 app.post("/iniciarsesion", async (req, res) => {
   const { nombre_usuario, contrasena } = req.body;
   if (!nombre_usuario || !contrasena) {
-    return res
-      .status(400)
-      .json({ mensaje: "Usuario y contraseña son requeridos" });
+    return res.status(400).json({ mensaje: "Usuario y contraseña son requeridos" });
   }
+
   try {
     const usuario = await Usuario.findOne({ nombre_usuario });
     if (!usuario) {
       return res.status(404).json({ mensaje: "Usuario no encontrado" });
     }
-    const contrasenaValida = await bcrypt.compare(
-      contrasena,
-      usuario.contrasena
-    );
+
+    const contrasenaValida = await bcrypt.compare(contrasena, usuario.contrasena);
     if (!contrasenaValida) {
       return res.status(401).json({ mensaje: "Contraseña incorrecta" });
     }
+
     const usuarioSinContrasena = {
       _id: usuario._id,
       nombre: usuario.nombre,
-      apellido_p: usuario.apellido_p,
-      apellido_m: usuario.apellido_m,
+      apellidos: usuario.apellidos,
       nombre_usuario: usuario.nombre_usuario,
       telefonos: usuario.telefonos,
+      correo: usuario.correo
     };
+
     res.status(200).json({
       mensaje: "Inicio de sesión exitoso",
-      usuario: usuarioSinContrasena,
+      usuario: usuarioSinContrasena
     });
   } catch (error) {
     console.error("Error en el login:", error);
@@ -83,54 +91,53 @@ app.post("/iniciarsesion", async (req, res) => {
 });
 
 // Obtener usuario por ID
-app.get('/usuarios/:id', async (req, res) => {
+app.get("/usuarios/:id", async (req, res) => {
   try {
-    const usuario = await Usuario.findById(req.params.id, '-contrasena');
-    if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const usuario = await Usuario.findById(req.params.id).select("-contrasena");
+    if (!usuario) return res.status(404).json({ error: "Usuario no encontrado" });
+
     res.json(usuario);
   } catch (error) {
-    console.error('Error al obtener usuario:', error);
-    res.status(500).json({ error: 'Error al obtener usuario' });
+    console.error("Error al obtener usuario:", error);
+    res.status(500).json({ error: "Error al obtener usuario" });
   }
 });
 
 // Actualizar usuario por ID
-app.put('/usuarios/:id', async (req, res) => {
+app.put("/usuarios/:id", async (req, res) => {
   try {
-    const { nombre, apellido_p, apellido_m, nombre_usuario, telefonos } = req.body;
-    await Usuario.findByIdAndUpdate(req.params.id, { nombre, apellido_p, apellido_m, nombre_usuario, telefonos });
-    res.json({ mensaje: 'Usuario actualizado' });
+    const { nombre, apellidos, nombre_usuario, telefonos, correo } = req.body;
+
+    const usuarioActualizado = await Usuario.findByIdAndUpdate(
+      req.params.id,
+      { nombre, apellidos, nombre_usuario, telefonos, correo },
+      { new: true }
+    );
+
+    if (!usuarioActualizado) {
+      return res.status(404).json({ mensaje: "Usuario no encontrado" });
+    }
+
+    res.json({ mensaje: "Usuario actualizado", usuario: usuarioActualizado });
   } catch (error) {
-    console.error('Error al actualizar usuario:', error);
-    res.status(500).json({ error: 'Error al actualizar usuario' });
+    console.error("Error al actualizar usuario:", error);
+    res.status(500).json({ error: "Error al actualizar usuario" });
   }
 });
 
 // Eliminar usuario por ID
-app.delete('/usuarios/:id', async (req, res) => {
+app.delete("/usuarios/:id", async (req, res) => {
   try {
-    await Usuario.findByIdAndDelete(req.params.id);
-    res.json({ mensaje: 'Usuario eliminado' });
+    const usuarioEliminado = await Usuario.findByIdAndDelete(req.params.id);
+
+    if (!usuarioEliminado) {
+      return res.status(404).json({ mensaje: "Usuario no encontrado" });
+    }
+
+    res.json({ mensaje: "Usuario eliminado correctamente" });
   } catch (error) {
-    console.error('Error al eliminar usuario:', error);
-    res.status(500).json({ error: 'Error al eliminar usuario' });
-  }
-});
-
-// Validación de login
-app.post('/login', async (req, res) => {
-  try {
-    const { nombre_usuario, contrasena } = req.body;
-    const usuario = await Usuario.findOne({ nombre_usuario });
-
-    if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const esValida = await bcrypt.compare(contrasena, usuario.contrasena);
-    if (!esValida) return res.status(401).json({ error: 'Contraseña incorrecta' });
-
-    res.json({ mensaje: 'Inicio de sesión exitoso', usuario});
-  } catch (error) {
-    console.error('Error en la autenticación:', error);
-    res.status(500).json({ error: 'Error en la autenticación' });
+    console.error("Error al eliminar usuario:", error);
+    res.status(500).json({ error: "Error al eliminar usuario" });
   }
 });
 
