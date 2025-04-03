@@ -388,5 +388,36 @@ app.put('/historial/:id', async (req, res) => {
     }
 });
 
+// Definir esquema de historial
+const historialSchema = new mongoose.Schema({
+  usuario_id: String,
+  accion: Boolean, // true para abrir, false para cerrar
+  fecha: { type: Date, default: Date.now },
+  hora: String,
+  modo: Boolean // true = automático, false = manual
+});
+
+const Historial = mongoose.model('Historial', historialSchema);
+
+// Endpoint para registrar un evento en el historial
+router.post('/historial', async (req, res) => {
+  try {
+      const { usuario_id, accion, modo } = req.body;
+
+      const nuevoHistorial = new Historial({
+          usuario_id,
+          accion,
+          hora: new Date().toLocaleTimeString(),
+          modo
+      });
+
+      await nuevoHistorial.save();
+      res.status(201).json({ message: "Historial registrado correctamente" });
+  } catch (error) {
+      res.status(500).json({ error: "Error al registrar historial" });
+  }
+});
+
+
 // Iniciar servidor
 app.listen(port, () => console.log(`Servidor corriendo en http://localhost:${port}`));
