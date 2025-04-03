@@ -195,23 +195,46 @@ app.post('/valvulas', async (req, res) => {
 });
 
 //Ruta para modificar registro de valvula
+// Ruta para modificar registro de válvula
 app.put('/valvulas/:id', async (req, res) => {
     try {
+        // Datos de la válvula modificada
         const valvulaModificada = await Valvula.findByIdAndUpdate(
-            req.params.id,   
-            req.body,        
-            { new: true }    
+            req.params.id,
+            req.body,
+            { new: true }
         );
 
         if (!valvulaModificada) {
             return res.status(404).json({ error: 'Válvula no encontrada' });
         }
 
+        // Aquí registramos el historial después de modificar la válvula
+        const { accion, usuario_id } = req.body; // Se asume que 'accion' y 'usuario_id' vienen en el cuerpo de la solicitud.
+        const hora = new Date().toLocaleTimeString(); // Hora actual
+        const fecha = new Date(); // Fecha actual
+        const modo = valvulaModificada.estado; // Se puede asignar el estado de la válvula como 'modo'
+
+        // Crear el historial
+        const nuevoHistorial = new Historial({
+            valvula_id: valvulaModificada._id,
+            usuario_id: usuario_id,
+            accion: accion, // Si fue abrir (true) o cerrar (false)
+            hora: hora,
+            fecha: fecha,
+            modo: modo // Estado de la válvula después de la acción
+        });
+
+        // Guardar el historial
+        await nuevoHistorial.save();
+
+        // Responder con la válvula modificada
         res.json(valvulaModificada);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
+
 
 //Ruta para eliminar una válvula 
 app.delete('/valvulas/:id', async (req, res) => {
